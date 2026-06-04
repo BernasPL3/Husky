@@ -1,10 +1,18 @@
 #include <3ds.h>
 #include <citro3d.h>
+#include <math.h>
 
 typedef struct {
     float x, y, z;
     float vy;
 } Player;
+
+Player husky = {0, 0, 0, 0};
+
+// câmera simples
+float camX = 0;
+float camY = 2;
+float camZ = 5;
 
 int main() {
     gfxInitDefault();
@@ -13,22 +21,22 @@ int main() {
     C3D_Init();
     C3D_RenderTarget* top = C2D_CreateScreenTarget(GFX_TOP, GFX_LEFT);
 
-    Player husky = {0.0f, 0.0f, 0.0f, 0.0f};
-
     while (aptMainLoop()) {
         hidScanInput();
         u32 kHeld = hidKeysHeld();
 
         if (kHeld & KEY_START) break;
 
-        // ===== MOVIMENTO DO HUSKY =====
+        // =====================
+        // MOVIMENTO DO HUSKY
+        // =====================
         if (kHeld & KEY_LEFT)  husky.x -= 0.1f;
         if (kHeld & KEY_RIGHT) husky.x += 0.1f;
         if (kHeld & KEY_UP)    husky.z -= 0.1f;
         if (kHeld & KEY_DOWN)  husky.z += 0.1f;
 
-        // pulo simples
-        if (kHeld & KEY_A && husky.y == 0.0f) {
+        // pulo
+        if (kHeld & KEY_A && husky.y == 0) {
             husky.vy = 0.25f;
         }
 
@@ -36,16 +44,26 @@ int main() {
         husky.vy -= 0.015f;
         husky.y += husky.vy;
 
-        if (husky.y < 0.0f) {
-            husky.y = 0.0f;
-            husky.vy = 0.0f;
+        if (husky.y < 0) {
+            husky.y = 0;
+            husky.vy = 0;
         }
 
-        // ===== RENDER =====
+        // =====================
+        // CÂMERA (segue atrás)
+        // =====================
+        camX = husky.x;
+        camY = husky.y + 2.0f;
+        camZ = husky.z + 5.0f;
+
+        // =====================
+        // RENDER
+        // =====================
         C3D_FrameBegin(C3D_FRAME_SYNCDRAW);
         C3D_FrameDrawOn(top);
 
-        // Aqui você vai desenhar o Husky como cubo (placeholder)
+        // Aqui ainda é placeholder visual
+        // (no próximo passo viram cubos reais 3D)
 
         C3D_FrameEnd(0);
     }
