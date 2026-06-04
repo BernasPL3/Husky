@@ -1,9 +1,10 @@
 TARGET := Husky
 BUILD := build
-SOURCE := source
+SOURCES := source/main.c
 
-SOURCES := $(wildcard $(SOURCE)/*.c)
+ELF := $(BUILD)/$(TARGET).elf
+3DSX := $(BUILD)/$(TARGET).3dsx
 
-LIBS := -lctru -lm -lcitro3d
+LIBS := -lctru -lm
 
 include $(DEVKITPRO)/3ds_rules
