@@ -1,4 +1,4 @@
-name: Husky Release Build
+name: Husky Full Release
 
 on:
   push:
@@ -14,30 +14,31 @@ jobs:
         uses: actions/checkout@v4
 
       # =========================
-      # Install dependencies
+      # BASE DEPENDENCIES
       # =========================
       - name: Install base tools
         run: |
           sudo apt update
-          sudo apt install -y wget git make xz-utils gnupg ca-certificates
+          sudo apt install -y wget git make xz-utils ca-certificates
 
       # =========================
-      # Install devkitPro (FIXED)
+      # DEVKITPRO (STABLE BOOTSTRAP)
       # =========================
-      - name: Setup devkitPro repo
+      - name: Install devkitPro
         run: |
-          sudo mkdir -p /etc/apt/keyrings
-          wget -qO- https://apt.devkitpro.org/devkitpro-pub.gpg | sudo gpg --dearmor -o /etc/apt/keyrings/devkitpro.gpg
-          echo "deb [signed-by=/etc/apt/keyrings/devkitpro.gpg] https://apt.devkitpro.org stable main" | sudo tee /etc/apt/sources.list.d/devkitpro.list
-          sudo apt update
+          wget https://apt.devkitpro.org/devkitpro-bootstrap.sh
+          chmod +x devkitpro-bootstrap.sh
+          sudo ./devkitpro-bootstrap.sh
 
-      - name: Install devkitPro tools
+      # =========================
+      # 3DS TOOLCHAIN
+      # =========================
+      - name: Install 3DS tools
         run: |
-          sudo apt install -y devkitpro-pacman
           sudo dkp-pacman -S --noconfirm 3ds-dev 3ds-tools
 
       # =========================
-      # Environment
+      # ENVIRONMENT
       # =========================
       - name: Setup PATH
         run: |
@@ -46,13 +47,13 @@ jobs:
           echo "/opt/devkitpro/tools/bin" >> $GITHUB_PATH
 
       # =========================
-      # Build ELF + 3DSX
+      # BUILD ELF + 3DSX
       # =========================
       - name: Build Husky
         run: make clean && make
 
       # =========================
-      # Create SMDH + CIA
+      # CREATE CIA ASSETS
       # =========================
       - name: Build CIA assets
         run: |
@@ -77,9 +78,9 @@ jobs:
             -bannertool build/banner.bin
 
       # =========================
-      # Create GitHub Release
+      # RELEASE (AUTO UPLOAD)
       # =========================
-      - name: Create Release
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
