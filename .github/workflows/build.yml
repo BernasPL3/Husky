@@ -1,0 +1,59 @@
+name: Build Husky 3DS
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y wget xz-utils git make
+
+      - name: Install devkitPro
+        run: |
+          wget https://apt.devkitpro.org/install-devkitpro-pacman
+          chmod +x install-devkitpro-pacman
+          sudo ./install-devkitpro-pacman
+
+      - name: Install 3DS tools
+        run: |
+          sudo dkp-pacman -S --noconfirm 3ds-dev 3ds-tools
+
+      - name: Setup environment
+        run: |
+          echo "DEVKITPRO=/opt/devkitpro" >> $GITHUB_ENV
+          echo "DEVKITARM=/opt/devkitpro/devkitARM" >> $GITHUB_ENV
+          echo "/opt/devkitpro/tools/bin" >> $GITHUB_PATH
+
+      - name: Build Husky
+        run: make
+
+      - name: Prepare CIA assets
+        run: |
+          mkdir -p build
+          smdhtool assets/icon.png -s "Husky!" -l "Husky 3DS Game" -p "Indie Dev" -o build/icon.smdh
+          bannertool makebanner -i assets/icon.png -o build/banner.bin
+
+      - name: Build CIA
+        run: |
+          makerom -f cia \
+          -o build/Husky.cia \
+          -target t \
+          -exefslogo \
+          -elf build/Husky.elf \
+          -icon build/icon.smdh \
+          -bannertool build/banner.bin
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Husky-Build
+          path: build/*
