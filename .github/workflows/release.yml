@@ -1,0 +1,90 @@
+name: Husky Release Build
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # =========================
+      # Install dependencies
+      # =========================
+      - name: Install base tools
+        run: |
+          sudo apt update
+          sudo apt install -y wget git make xz-utils gnupg ca-certificates
+
+      # =========================
+      # Install devkitPro (FIXED)
+      # =========================
+      - name: Setup devkitPro repo
+        run: |
+          sudo mkdir -p /etc/apt/keyrings
+          wget -qO- https://apt.devkitpro.org/devkitpro-pub.gpg | sudo gpg --dearmor -o /etc/apt/keyrings/devkitpro.gpg
+          echo "deb [signed-by=/etc/apt/keyrings/devkitpro.gpg] https://apt.devkitpro.org stable main" | sudo tee /etc/apt/sources.list.d/devkitpro.list
+          sudo apt update
+
+      - name: Install devkitPro tools
+        run: |
+          sudo apt install -y devkitpro-pacman
+          sudo dkp-pacman -S --noconfirm 3ds-dev 3ds-tools
+
+      # =========================
+      # Environment
+      # =========================
+      - name: Setup PATH
+        run: |
+          echo "DEVKITPRO=/opt/devkitpro" >> $GITHUB_ENV
+          echo "DEVKITARM=/opt/devkitpro/devkitARM" >> $GITHUB_ENV
+          echo "/opt/devkitpro/tools/bin" >> $GITHUB_PATH
+
+      # =========================
+      # Build ELF + 3DSX
+      # =========================
+      - name: Build Husky
+        run: make clean && make
+
+      # =========================
+      # Create SMDH + CIA
+      # =========================
+      - name: Build CIA assets
+        run: |
+          mkdir -p build
+
+          smdhtool assets/icon.png \
+            -s "Husky!" \
+            -l "Husky 3DS Platformer" \
+            -p "Indie Dev" \
+            -o build/icon.smdh
+
+          bannertool makebanner \
+            -i assets/icon.png \
+            -o build/banner.bin
+
+          makerom -f cia \
+            -o build/Husky.cia \
+            -target t \
+            -exefslogo \
+            -elf build/Husky.elf \
+            -icon build/icon.smdh \
+            -bannertool build/banner.bin
+
+      # =========================
+      # Create GitHub Release
+      # =========================
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            build/Husky.3dsx
+            build/Husky.cia
+            build/Husky.elf
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
